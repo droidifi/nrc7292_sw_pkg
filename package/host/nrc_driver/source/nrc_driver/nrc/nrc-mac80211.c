@@ -52,7 +52,7 @@
 	.center_freq = (_freq),				\
 	.hw_value = (_freq),				\
 	.max_power = 20,					\
-	.center_freq_fractional = (_freq_partial) \
+	.freq_offset = (_freq_partial) \
 }
 
 #define CHAN2G(freq)			\
@@ -1066,9 +1066,9 @@ static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
 	struct wim_s1g_channel_param param;
 
 	param.pr_freq = FREQ_TO_100KHZ(chandef->chan->center_freq,
-				chandef->chan->center_freq_fractional);
+				chandef->chan->freq_offset);
 	param.op_freq = FREQ_TO_100KHZ(chandef->center_freq1,
-				chandef->center_freq1_fractional);
+				chandef->freq1_offset);
 	param.width = get_wim_channel_width(chandef->width);
 	pr_err("nrc: pri(%d), op(%d), width(%d)\n", param.pr_freq,
 			param.op_freq, param.width);
@@ -2743,7 +2743,7 @@ int nrc_register_hw(struct nrc *nw)
 			sband->bitrates = nrc_rates;
 			sband->n_bitrates = ARRAY_SIZE(nrc_rates);
 
-			sband->s1g_cap.s1g_supported = true;
+// 			sband->s1g_cap.s1g_supported = true;
 			hw->wiphy->bands[band] = sband;
 			continue;
 			break;
