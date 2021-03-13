@@ -1077,7 +1077,7 @@ get_wim_channel_width(enum nl80211_chan_width width)
 	case NL80211_CHAN_WIDTH_16:
 		return CH_WIDTH_16;
 	default:
-		return CH_WIDTH_1;
+		return CH_WIDTH_2;
 #else
 	default:
 		return CH_WIDTH_20;
@@ -1278,7 +1278,7 @@ static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
 	param.width = get_wim_channel_width(chandef->width);
 
     if(param.width <= CH_WIDTH_1 || param.width >= CH_WIDTH_4)
-        param.width = CH_WIDTH_1;
+        param.width = CH_WIDTH_2;
     
     param.flags = 0;
     
@@ -2508,7 +2508,7 @@ static int nrc_mac_switch_vif_chanctx(struct ieee80211_hw *hw,
 	param.width = get_wim_channel_width(new_ctx->def.chan->width);
 
     if(param.width <= CH_WIDTH_1 || param.width >= CH_WIDTH_4)
-        param.width = CH_WIDTH_1;
+        param.width = CH_WIDTH_2;
     
     param.flags = 0;
     
@@ -3052,14 +3052,15 @@ int nrc_register_hw(struct nrc *nw)
 	hw->wiphy->vendor_events = nrc_vendor_events;
 	hw->wiphy->n_vendor_events = ARRAY_SIZE(nrc_vendor_events);
 
-#ifdef CONFIG_SUPPORT_AFTER_KERNEL_3_0_36
-    hw->wiphy->regulatory_flags |=
-		REGULATORY_CUSTOM_REG|WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
-
-	wiphy_apply_custom_regulatory(hw->wiphy, &mac80211_regdom);
-	nw->alpha2[0] = '9';
-	nw->alpha2[1] = '9';        
-#endif
+    // NOTE: use wireless-regdb with 802.11ah freqs
+// #ifdef CONFIG_SUPPORT_AFTER_KERNEL_3_0_36
+//     hw->wiphy->regulatory_flags |=
+// 		REGULATORY_CUSTOM_REG|WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
+// 
+// 	wiphy_apply_custom_regulatory(hw->wiphy, &mac80211_regdom);
+// 	nw->alpha2[0] = '9';
+// 	nw->alpha2[1] = '9';        
+// #endif
 
 	if (nrc_mac_is_s1g(nw)) {
 		/*this is only for 802.11ah*/
