@@ -164,6 +164,9 @@ int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 		size += tlv_len(ies->common_ie_len);
 		size += ies->len[NL80211_BAND_2GHZ];
 		size += ies->len[NL80211_BAND_5GHZ];
+#ifdef  CONFIG_S1G_CHANNEL
+        size += ies->len[NL80211_BAND_S1GHZ];
+#endif
 	} else {
 		size += tlv_len(req->ie_len);
 	}
@@ -196,6 +199,9 @@ int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 					WIM_TLV_SCAN_PROBE_REQ_IE,
 					ies->common_ie_len +
 					ies->len[NL80211_BAND_2GHZ] +
+#ifdef  CONFIG_S1G_CHANNEL
+					ies->len[NL80211_BAND_S1GHZ] +
+#endif
 					ies->len[NL80211_BAND_5GHZ],
 					NULL);
 

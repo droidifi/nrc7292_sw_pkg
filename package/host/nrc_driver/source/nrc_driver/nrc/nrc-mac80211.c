@@ -81,6 +81,34 @@
 #define FREQ_TO_100KHZ(mhz, khz) (mhz * 10 + khz / 100)
 
 #if defined(CONFIG_S1G_CHANNEL)
+
+    static const struct ieee80211_sta_s1g_cap nrc_s1g_cap = {
+	.s1g = true,
+	.cap = { S1G_CAP0_SGI_1MHZ | S1G_CAP0_SGI_2MHZ | S1G_CAP0_SGI_4MHZ | S1G_CAP0_SGI_8MHZ | S1G_CAP0_SGI_16MHZ,
+		 0,
+		 0,
+		 S1G_CAP3_MAX_MPDU_LEN,
+		 0,
+		 S1G_CAP5_AMPDU,
+		 0,
+		 S1G_CAP7_DUP_1MHZ,
+		 S1G_CAP8_TWT_RESPOND | S1G_CAP8_TWT_REQUEST,
+		 0},
+	.nss_mcs = { 0xfc | 1, /* MCS 7 for 1 SS */
+	/* RX Highest Supported Long GI Data Rate 0:7 */
+		     0,
+	/* RX Highest Supported Long GI Data Rate 0:7 */
+	/* TX S1G MCS Map 0:6 */
+		     0xfa,
+	/* TX S1G MCS Map :7 */
+	/* TX Highest Supported Long GI Data Rate 0:6 */
+		     0x80,
+	/* TX Highest Supported Long GI Data Rate 7:8 */
+	/* Rx Single spatial stream and S1G-MCS Map for 1MHz */
+	/* Tx Single spatial stream and S1G-MCS Map for 1MHz */
+		     0 },
+};
+
 static struct ieee80211_channel nrc_channels_s1ghz[] = {
 	CHANS1G(902, 500),  /* Channel 1 */
 	CHANS1G(903, 0),    /* Channel 2 */
@@ -128,6 +156,7 @@ static struct ieee80211_channel nrc_channels_s1ghz[] = {
 	CHANS1G(927, 0),    /* Channel 46 */
 	CHANS1G(927, 500),  /* Channel 51 */
 };
+#define NUM_S1G_CHANS_US ARRAY_SIZE(nrc_channels_s1ghz)
 #else
 static struct ieee80211_channel nrc_channels_2ghz[] = {
 	CHAN2G(2412), /* Channel 1 */
@@ -189,7 +218,7 @@ static struct ieee80211_channel nrc_channels_5ghz[] = {
 };
 #endif /* CONFIG_S1G_CHANNEL */
 
-
+#if !defined(CONFIG_S1G_CHANNEL)
 static struct ieee80211_rate nrc_rates[] = {
 	/* 11b rates */
 	{ .bitrate = 10 },
@@ -209,6 +238,16 @@ static struct ieee80211_rate nrc_rates[] = {
 	{ .bitrate = 480 },
 	{ .bitrate = 540 }
 };
+#else
+static struct ieee80211_rate nrc_rates[] = {
+	/* 11ah rates */
+	{ .bitrate = 10 },
+    { .bitrate = 20, .flags = IEEE80211_RATE_SHORT_PREAMBLE },
+    { .bitrate = 40, .flags = IEEE80211_RATE_SHORT_PREAMBLE },
+    { .bitrate = 80, .flags = IEEE80211_RATE_SHORT_PREAMBLE },
+    { .bitrate = 160, .flags = IEEE80211_RATE_SHORT_PREAMBLE },
+};
+#endif
 
 #if defined(CONFIG_S1G_CHANNEL)
 static const struct ieee80211_regdomain mac80211_regdom = {
@@ -1025,7 +1064,7 @@ get_wim_channel_width(enum nl80211_chan_width width)
 	case NL80211_CHAN_WIDTH_5:
 		return CH_WIDTH_5;
 	case NL80211_CHAN_WIDTH_10:
-		return CH_WIDTH_10;
+		return CH_WIDTH_10;      
 #if defined(CONFIG_S1G_CHANNEL)
 	case NL80211_CHAN_WIDTH_1:
 		return CH_WIDTH_1;
@@ -1037,11 +1076,174 @@ get_wim_channel_width(enum nl80211_chan_width width)
 		return CH_WIDTH_8;
 	case NL80211_CHAN_WIDTH_16:
 		return CH_WIDTH_16;
-#endif /* CONFIG_S1G_CHANNEL */
+	default:
+		return CH_WIDTH_1;
+#else
 	default:
 		return CH_WIDTH_20;
+#endif /* CONFIG_S1G_CHANNEL */
 	}
 }
+
+#ifdef CONFIG_S1G_CHANNEL
+
+static void init_s1g_channels(struct ieee80211_channel *channels)
+{
+	int ch, freq;
+
+	for (ch = 0; ch < NUM_S1G_CHANS_US; ch++) {
+		freq = 902000 + (ch + 1) * 500;
+		channels[ch].band = NL80211_BAND_S1GHZ;
+		channels[ch].center_freq = KHZ_TO_MHZ(freq);
+		channels[ch].freq_offset = freq % 1000;
+        if(channels[ch].freq_offset > 0) {
+            channels[ch].flags |= IEEE80211_CHAN_1MHZ;
+        }
+        else if (freq >= 905000 && (freq - 900000) % 2000) {
+            channels[ch].flags |= IEEE80211_CHAN_2MHZ;
+        }
+        else {
+            channels[ch].flags |= IEEE80211_CHAN_4MHZ;
+        }
+		channels[ch].hw_value = ch + 1;
+	}
+}
+
+// static void nrc_map_s1g_channels(struct cfg80211_chan_def *chandef, struct wim_channel_param *ch_param)
+// {
+//     int freq_s1g, ch;
+//     
+//     freq_s1g = chandef->chan->center_freq;
+//     
+//     switch(freq_s1g)
+//     {
+//         case 9035:
+//             ch = 3;
+//             break;
+//         case 9045:
+//             ch = 5;
+//             break;
+//         case 9050:
+//             ch = 6;
+//             break;            
+//         case 9055:
+//             ch = 7;
+//             break;
+//         case 9065:
+//             ch = 9;
+//             break;
+//         case 9070:
+//             ch = 10;
+//             break;            
+//         case 9075:
+//             ch = 11;
+//             break;
+//         case 9085:
+//             ch = 36;
+//             break;
+//         case 9090:
+//             ch = 153;
+//             break;
+//         case 9095:
+//             ch = 37;
+//             break;            
+//         case 9105:
+//             ch = 38;
+//             break;
+//         case 9100:
+//             ch = 162;
+//             break;
+//         case 9110:
+//             ch = 154;
+//             break;
+//         case 9115:
+//             ch = 39;
+//             break;
+//         case 9125:
+//             ch = 40;
+//             break;
+//         case 9130:
+//             ch = 155;
+//             break;
+//         case 9135:
+//             ch = 41;
+//             break;
+//         case 9140:
+//             ch = 163;
+//             break;
+//         case 9145:
+//             ch = 42;
+//             break;
+//         case 9150:
+//             ch = 156;
+//             break;
+//         case 9155:
+//             ch = 43;
+//             break;
+//         case 9165:
+//             ch = 44;
+//             break;
+//         case 9170:
+//             ch = 157;
+//             break;            
+//         case 9175:
+//             ch = 45;
+//             break;
+//         case 9180:
+//             ch = 164;
+//             break;
+//         case 9185:
+//             ch = 46;
+//             break;
+//         case 9190:
+//             ch = 158;
+//             break;
+//         case 9195:
+//             ch = 47;
+//             break;
+//         case 9205:
+//             ch = 48;
+//             break;
+//         case 9210:
+//             ch = 159;
+//             break;
+//         case 9215:
+//             ch = 149;
+//             break;
+//         case 9220:
+//             ch = 165;
+//             break;
+//         case 9225:
+//             ch = 150;
+//             break;
+//         case 9230:
+//             ch = 160;
+//             break;
+//         case 9235:
+//             ch = 151;
+//             break;
+//         case 9245:
+//             ch = 152;
+//             break;
+//         case 9250:
+//             ch = 161;
+//             break;
+//         case 9255:
+//             ch = 100;
+//             break;
+//         case 9265:
+//             ch = 104;
+//             break;
+//         default:
+//             ch = 3;
+//             break;
+//     }
+//     
+//     ch_param->channel = ieee80211_channel_to_frequency(ch, NL80211_BAND_5GHZ);
+//     ch_param->type = NL80211_CHAN_HT20;
+//     ch_param->width = get_wim_channel_width(NL80211_CHAN_WIDTH_20);
+// }
+#endif
 
 #ifdef CONFIG_SUPPORT_CHANNEL_INFO
 static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
@@ -1060,6 +1262,10 @@ static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
 	ch_param.channel = chandef->chan->center_freq;
 	ch_param.type = ch_type;
 	ch_param.width = get_wim_channel_width(chandef->width);
+    
+    nrc_mac_dbg("%s: ch_param.channel(%d), ch_param.type(%d), ch_param.width(%d)\n", __func__, ch_param.channel,
+			ch_param.type, ch_param.width);
+    
 	nrc_wim_skb_add_tlv(skb, WIM_TLV_CHANNEL,
 				   sizeof(ch_param), &ch_param);
 #else
@@ -1070,8 +1276,15 @@ static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
 	param.op_freq = FREQ_TO_100KHZ(chandef->center_freq1,
 				chandef->freq1_offset);
 	param.width = get_wim_channel_width(chandef->width);
-	pr_err("nrc: pri(%d), op(%d), width(%d)\n", param.pr_freq,
+
+    if(param.width <= CH_WIDTH_1 || param.width >= CH_WIDTH_4)
+        param.width = CH_WIDTH_1;
+    
+    param.flags = 0;
+    
+    nrc_mac_dbg("%s: pr_freq(%d), op_freq(%d), width(%d)\n", __func__, param.pr_freq,
 			param.op_freq, param.width);
+    
 	nrc_wim_skb_add_tlv(skb, WIM_TLV_S1G_CHANNEL, sizeof(param),
 			&param);
 #endif
@@ -2128,7 +2341,11 @@ static int nrc_mac_roc(struct ieee80211_hw *hw, struct ieee80211_channel *chan,
 #ifdef CONFIG_SUPPORT_CHANNEL_INFO
 	if (!hw->conf.chandef.chan) {
 		chandef.chan = chan;
+#ifndef  CONFIG_S1G_CHANNEL       
 		chandef.width = NL80211_CHAN_WIDTH_20;
+#else     
+        chandef.width = NL80211_CHAN_WIDTH_1;
+#endif
 		cdef = &chandef;
 	} else
 		cdef = &hw->conf.chandef;
@@ -2276,12 +2493,31 @@ static int nrc_mac_switch_vif_chanctx(struct ieee80211_hw *hw,
 	skb = nrc_wim_alloc_skb_vif(nw, vif, WIM_CMD_SET, WIM_MAX_SIZE);
 	if (!skb)
 		return -EINVAL;
-
+#if !defined(CONFIG_S1G_CHANNEL)
 	nrc_wim_skb_add_tlv(skb,
 			WIM_TLV_CHANNEL,
 			sizeof(new_ctx->def.chan->center_freq),
 			&new_ctx->def.chan->center_freq);
+#else
+	struct wim_s1g_channel_param param;
 
+	param.pr_freq = FREQ_TO_100KHZ(new_ctx->def.chan->center_freq,
+				new_ctx->def.chan->freq_offset);
+	param.op_freq = FREQ_TO_100KHZ(new_ctx->def.chan->center_freq1,
+				new_ctx->def.chan->freq1_offset);
+	param.width = get_wim_channel_width(new_ctx->def.chan->width);
+
+    if(param.width <= CH_WIDTH_1 || param.width >= CH_WIDTH_4)
+        param.width = CH_WIDTH_1;
+    
+    param.flags = 0;
+    
+    nrc_mac_dbg("%s: pr_freq(%d), op_freq(%d), width(%d)\n", __func__, param.pr_freq,
+			param.op_freq, param.width);
+    
+	nrc_wim_skb_add_tlv(skb, WIM_TLV_S1G_CHANNEL, sizeof(param),
+			&param);
+#endif
 	nrc_xmit_wim_request(nw, skb);
 
 #ifdef CONFIG_SUPPORT_ITERATE_INTERFACE
@@ -2611,7 +2847,6 @@ static const struct nl80211_vendor_cmd_info nrc_vendor_events[] = {
 	},
 };
 
-
 /**
  * nrc_hw_register - initialize struct ieee80211_hw instance
  */
@@ -2738,12 +2973,15 @@ int nrc_register_hw(struct nrc *nw)
 		switch (band) {
 #if defined(CONFIG_S1G_CHANNEL)
 		case NL80211_BAND_S1GHZ:
+            memcpy(&sband->s1g_cap, &nrc_s1g_cap,
+			       sizeof(sband->s1g_cap));
+            init_s1g_channels(nrc_channels_s1ghz);
 			sband->channels = nrc_channels_s1ghz;
 			sband->n_channels = ARRAY_SIZE(nrc_channels_s1ghz);
 			sband->bitrates = nrc_rates;
 			sband->n_bitrates = ARRAY_SIZE(nrc_rates);
-
-// 			sband->s1g_cap.s1g_supported = true;
+            sband->band = NL80211_BAND_S1GHZ;
+            sband->ht_cap.ht_supported = false;
 			hw->wiphy->bands[band] = sband;
 			continue;
 			break;
@@ -2815,13 +3053,13 @@ int nrc_register_hw(struct nrc *nw)
 	hw->wiphy->n_vendor_events = ARRAY_SIZE(nrc_vendor_events);
 
 #ifdef CONFIG_SUPPORT_AFTER_KERNEL_3_0_36
-	hw->wiphy->regulatory_flags =
+    hw->wiphy->regulatory_flags |=
 		REGULATORY_CUSTOM_REG|WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
-#endif
 
 	wiphy_apply_custom_regulatory(hw->wiphy, &mac80211_regdom);
 	nw->alpha2[0] = '9';
-	nw->alpha2[1] = '9';
+	nw->alpha2[1] = '9';        
+#endif
 
 	if (nrc_mac_is_s1g(nw)) {
 		/*this is only for 802.11ah*/
