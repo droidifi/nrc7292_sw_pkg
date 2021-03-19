@@ -19,7 +19,6 @@
 
 #include <linux/version.h>
 
-#define NRC_BUILD_USE_HWSCAN
 /* #define CONFIG_NRC_HIF_PRINT_BEACON */
 /* #define CONFIG_NRC_HIF_PRINT_RX_AUTH */
 /* #define CONFIG_NRC_HIF_PRINT_RX_DATA */
@@ -46,6 +45,13 @@
 #if KERNEL_VERSION(5, 10, 0) <= NRC_TARGET_KERNEL_VERSION
 #define CONFIG_S1G_CHANNEL 1
 #endif
+
+#ifdef CONFIG_S1G_CHANNEL
+#undef NRC_BUILD_USE_HWSCAN
+#else
+#define NRC_BUILD_USE_HWSCAN
+#endif
+
 #if KERNEL_VERSION(4, 10, 0) <= NRC_TARGET_KERNEL_VERSION
 #define GENL_ID_GENERATE 0
 #endif

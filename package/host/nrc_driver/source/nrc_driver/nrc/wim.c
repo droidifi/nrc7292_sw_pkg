@@ -152,6 +152,156 @@ int nrc_wim_change_sta(struct nrc *nw, struct ieee80211_vif *vif,
 	return nrc_xmit_wim_request(nw, skb);
 }
 
+#ifdef NRC_BUILD_USE_HWSCAN
+
+#ifdef CONFIG_S1G_CHANNEL
+#define FREQ_TO_100KHZ(mhz, khz) (mhz * 10 + khz / 100)
+
+ uint16_t   s1g_map_channel(int channel, int offset)
+ {
+     uint16_t freq, s1g_freq;
+     
+     s1g_freq = FREQ_TO_100KHZ(channel, offset);
+
+     switch(s1g_freq)
+     {
+         case 9025:
+             freq = 2417; //1
+             break;
+         case 9035:
+             freq = 2422; //3
+             break;
+         case 9040:
+             freq = 2427; //4
+             break;
+         case 9045:
+             freq = 2432; //5
+             break;
+         case 9050:
+             freq = 2437; //6
+             break;             
+         case 9055:
+             freq = 2442; //7
+             break;
+        case 9060:
+             freq = 2447; //8
+             break;
+         case 9065:
+             freq = 2452; //9
+             break;
+        case 9070:
+             freq = 2457; //10
+             break;
+        case 9075:
+             freq = 2462; //11
+             break;
+        case 9085:
+             freq = 5180; //36
+             break;
+        case 9090:
+             freq = 5765; //153
+             break;
+        default:             
+        case 9095:
+             freq = 5185; //37
+             break;
+        case 9100:
+             freq = 5810; //162
+             break;
+        case 9105:
+             freq = 5190; //38
+             break;
+        case 9110:
+             freq = 5770; //154
+             break;
+        case 9115:
+             freq = 5195; //39
+             break;
+        case 9125:
+             freq = 5200; //40
+             break;
+        case 9130:
+             freq = 5775; //155
+             break;
+        case 9135:
+             freq = 5205; //41
+             break;
+        case 9140:
+             freq = 5815; //163
+             break;
+        case 9145:
+             freq = 5210; //42
+             break;
+        case 9150:
+             freq = 5780; //156;
+             break;
+        case 9155:
+             freq = 5215; //43
+             break;
+        case 9165:
+             freq = 5220; //44
+             break;
+        case 9170:
+             freq = 5785; //157
+             break;
+        case 9175:
+             freq = 5225; //45
+             break;
+        case 9180:
+             freq = 5820; //164
+             break;
+        case 9185:
+             freq = 5230; //46
+             break;
+        case 9190:
+             freq = 5790; //158
+             break;
+        case 9195:
+             freq = 5235; //47
+             break;
+        case 9205:
+             freq = 5240; //48
+             break;
+        case 9210:
+             freq = 5795; //159
+             break;
+        case 9215:
+             freq = 5745; //149
+             break;
+        case 9220:
+             freq = 5825; //165
+             break;
+        case 9225:
+             freq = 5750; //150
+             break;
+        case 9230:
+             freq = 5800; //160
+             break;
+        case 9235:
+             freq = 5755; //151
+             break;
+        case 9245:
+             freq = 5760; //152
+             break;
+        case 9250:
+             freq = 5805; //161
+             break;
+        case 9255:
+             freq = 5500; //100
+             break;
+        case 9265:
+             freq = 5520; //104
+             break;
+        case 9275:
+             freq = 5540; //108
+             break;
+     }
+     
+     return freq;
+     
+ }
+#endif /* CONFIG_S1G_CHANNEL */
+
 int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 		    struct cfg80211_scan_request *req,
 		    struct ieee80211_scan_ies *ies)
@@ -159,7 +309,7 @@ int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 	struct sk_buff *skb;
 	struct wim_scan_param *p;
 	int i, size = tlv_len(sizeof(struct wim_scan_param));
-
+    
 	if (ies) {
 		size += tlv_len(ies->common_ie_len);
 		size += ies->len[NL80211_BAND_2GHZ];
@@ -182,7 +332,13 @@ int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 
 	p->n_channels = req->n_channels;
 	for (i = 0; i < req->n_channels; i++)
+    {
+#ifdef CONFIG_S1G_CHANNEL
+        p->channel[i] = s1g_map_channel(req->channels[i]->center_freq, req->channels[i]->freq_offset);
+#else
 		p->channel[i] = req->channels[i]->center_freq;
+#endif
+    }
 
 	p->n_ssids = req->n_ssids;
 	for (i = 0; i < req->n_ssids; i++) {
@@ -224,7 +380,7 @@ int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 
 	return nrc_xmit_wim_request(nw, skb);
 }
-
+#endif
 
 static char *ieee80211_cipher_str(u32 cipher)
 {

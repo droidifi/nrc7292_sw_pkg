@@ -271,6 +271,181 @@ static int tx_h_put_iv(struct nrc_trx_data *tx)
 TXH(tx_h_put_iv, NL80211_IFTYPE_ALL);
 
 
+
+#ifdef CONFIG_S1G_CHANNEL
+// NOTE: current firmware puts bogus frequencies into skb header, need to remap for native S1G
+static void nrc_remap_freqs(struct ieee80211_rx_status *status)
+{
+    nrc_mac_dbg("%s: status->freq %d\n",__func__, status->freq);
+    
+    status->freq_offset = 0;
+    
+    switch(status->freq)
+    {
+         case 2417:
+             status->freq = 902; //1
+             status->freq_offset = 1;
+             break;
+         case 2422:
+             status->freq = 903; //3
+             status->freq_offset = 1;
+             break;
+         case 2427:
+             status->freq = 904; //4
+             break;
+         case 2432:
+             status->freq = 904; //5
+             status->freq_offset = 1;
+             break;
+         case 2437:
+             status->freq = 905; //6
+             break;             
+         case 2442:
+             status->freq = 905; //7
+             status->freq_offset = 1;
+             break;
+        case 2447:
+             status->freq = 906; //8
+             break;
+         case 2452:
+             status->freq = 906; //9
+             status->freq_offset = 1;
+             break;
+        case 2457:
+             status->freq = 907; //10
+             break;
+        case 2462:
+             status->freq = 907; //11
+             status->freq_offset = 1;
+             break;
+        case 2467:
+             status->freq = 908; //11
+             break;
+        case 5180:
+             status->freq = 908; //36
+             status->freq_offset = 1;
+             break;
+        case 5765:
+             status->freq = 909; //153
+             break;
+        case 5185:
+             status->freq = 909; //37
+             status->freq_offset = 1;
+             break;
+        case 5810:
+             status->freq = 910; //162
+             break;
+        case 5190:
+             status->freq = 910; //38
+             status->freq_offset = 1;
+             break;
+        case 5770:
+             status->freq = 911; //154
+             break;
+        case 5195:
+             status->freq = 911; //39
+             status->freq_offset = 1;
+             break;
+        case 5200:
+             status->freq = 912; //40
+             status->freq_offset = 1;
+             break;
+        case 5775:
+             status->freq = 913; //155
+             break;
+        case 5205:
+             status->freq = 913; //41
+             status->freq_offset = 1;
+             break;
+        case 5815:
+             status->freq = 914; //163
+             break;
+        case 5210:
+             status->freq = 914; //42
+             status->freq_offset = 1;
+             break;
+        case 5780:
+             status->freq = 915; //156;
+             break;
+        case 5215:
+             status->freq = 915; //43
+             status->freq_offset = 1;
+             break;
+        case 5220:
+             status->freq = 916; //44
+             status->freq_offset = 1;
+             break;
+        case 5785:
+             status->freq = 917; //157
+             break;
+        case 5225:
+             status->freq = 917; //45
+             status->freq_offset = 1;
+             break;
+        case 5820:
+             status->freq = 918; //164
+             break;
+        case 5230:
+             status->freq = 918; //46
+             status->freq_offset = 1;
+             break;
+        case 5790:
+             status->freq = 919; //158
+             break;
+        case 5235:
+             status->freq = 919; //47
+             status->freq_offset = 1;
+             break;
+        case 5240:
+             status->freq = 920; //48
+             status->freq_offset = 1;
+             break;
+        case 5795:
+             status->freq = 921; //159
+             break;
+        case 5745:
+             status->freq = 921; //149
+             status->freq_offset = 1;
+             break;
+        case 5825:
+             status->freq = 922; //165
+             break;
+        case 5750:
+             status->freq = 922; //150
+             status->freq_offset = 1;
+             break;
+        case 5800:
+             status->freq = 923; //160
+             break;
+        case 5755:
+             status->freq = 923; //151
+             status->freq_offset = 1;
+             break;
+        case 5760:
+             status->freq = 924; //152
+             status->freq_offset = 1;
+             break;
+        case 5805:
+             status->freq = 925; //161
+             break;
+        case 5500:
+             status->freq = 925; //100
+             status->freq_offset = 1;
+             break;
+        case 5520:
+             status->freq = 926; //104
+             status->freq_offset = 1;
+             break;
+        case 5540:
+             status->freq = 927; //108
+             status->freq_offset = 1;
+             break;
+     } 
+     
+     nrc_mac_dbg("%s: status->freq %d\n",__func__, status->freq);
+}
+#endif
+
 /* RX */
 
 static void nrc_mac_rx_h_status(struct nrc *nw, struct sk_buff *skb)
@@ -289,6 +464,11 @@ static void nrc_mac_rx_h_status(struct nrc *nw, struct sk_buff *skb)
 	status->freq = fh->info.rx.frequency;
 	status->band = nw->band; /* I hate this */
 	status->rate_idx = 0;
+
+#ifdef CONFIG_S1G_CHANNEL
+    // firmware puts bogus frequency info into skb header, need to remap
+    nrc_remap_freqs(status);
+#endif
 
 	if (fh->flags.rx.error_mic)
 		status->flag |= RX_FLAG_MMIC_ERROR;
@@ -355,7 +535,7 @@ int nrc_mac_rx(struct nrc *nw, struct sk_buff *skb)
 	}
 
 	nrc_mac_rx_h_status(nw, skb);
-
+    
 	if (nw->promisc) {
 		ret = nrc_mac_s1g_monitor_rx(nw, skb);
 		return ret;

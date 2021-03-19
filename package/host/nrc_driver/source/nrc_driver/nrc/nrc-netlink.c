@@ -496,6 +496,7 @@ static int halow_set_dut(struct sk_buff *skb, struct genl_info *info)
 	return halow_reply(NL_HALOW_SET_DUT, info, NL_HALOW_RESP_OK);
 
 halow_not_supported:
+	nrc_dbg(NRC_DBG_CAPI, "%s: halow_not_supported", __func__);
 	return halow_reply(NL_HALOW_SET_DUT, info, NL_HALOW_RESP_NOT_SUPP);
 }
 
