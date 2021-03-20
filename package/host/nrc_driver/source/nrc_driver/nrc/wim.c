@@ -166,8 +166,11 @@ int nrc_wim_change_sta(struct nrc *nw, struct ieee80211_vif *vif,
      switch(s1g_freq)
      {
          case 9025:
-             freq = 2417; //1
+             freq = 2412; //1
              break;
+         case 9030:
+             freq = 2417; //2
+             break;             
          case 9035:
              freq = 2422; //3
              break;
@@ -200,8 +203,7 @@ int nrc_wim_change_sta(struct nrc *nw, struct ieee80211_vif *vif,
              break;
         case 9090:
              freq = 5765; //153
-             break;
-        default:             
+             break;        
         case 9095:
              freq = 5185; //37
              break;
@@ -283,15 +285,22 @@ int nrc_wim_change_sta(struct nrc *nw, struct ieee80211_vif *vif,
         case 9245:
              freq = 5760; //152
              break;
+        default:             
         case 9250:
              freq = 5805; //161
              break;
         case 9255:
              freq = 5500; //100
              break;
+        case 9260:
+             freq = 5580; //116
+             break;
         case 9265:
              freq = 5520; //104
              break;
+        case 9270:
+             freq = 5560; //112
+             break;             
         case 9275:
              freq = 5540; //108
              break;
