@@ -21,6 +21,8 @@
 
 #include <linux/sort.h>
 
+static char s1g_alpha2[3] = "US";
+
 #define S1GMAP(_alpha2, _freq_s1g, _freq_fw, _ch, _bw) { \
 	.alpha2 = _alpha2,   \
 	.s1g_freq = (_freq_s1g),\
@@ -195,7 +197,7 @@ static const struct nrc_s1g_map* find_entry(const char* alpha2, int freq)
             p++;
     }
     
-    if((p - s1g_map) > NUM_S1G_CHANNELS)
+    if((p - s1g_map) >= NUM_S1G_CHANNELS)
         p = &s1g_map[NUM_S1G_CHANNELS - 1];
     
 //     nrc_dbg(NRC_DBG_S1G, "%s %s p->s1g_freq %d p->fw_freq %d\n", __func__, alpha2, p->s1g_freq, p->fw_freq);
@@ -272,6 +274,20 @@ void nrc_remap_status(const char* alpha2, struct ieee80211_rx_status *status)
     status->freq_offset = (s1g_freq % 10 ? 1 : 0);
     
     nrc_dbg(NRC_DBG_S1G, "%s status->freq %d status->freq_offset %d\n", __func__, status->freq, status->freq_offset);
+}
+
+void nrc_set_s1g_country(const char* alpha2)
+{
+  if(alpha2) {
+      s1g_alpha2[0] = alpha2[0];
+      s1g_alpha2[1] = alpha2[1];
+      s1g_alpha2[2] = '\0';
+  }
+}
+
+const char* nrc_get_s1g_country(void)
+{
+    return s1g_alpha2;
 }
 
 #endif /* CONFIG_S1G_CHANNEL */

@@ -21,8 +21,6 @@
 #include <linux/types.h>
 #include <stddef.h>
 
-#define S1G_COUNTRY "US"
-
 #define FREQ_TO_100KHZ(mhz, khz) (mhz * 10 + khz / 100)
 
 struct nrc_s1g_map {
@@ -39,5 +37,6 @@ int nrc_freq_s1g_fw(const char* alpha2, int s1g_freq);
 int nrc_s1g_width(const char* alpha2, int s1g_freq);
 int nrc_num_channels(const char* alpha2);
 void nrc_remap_status(const char* alpha2, struct ieee80211_rx_status *status);
-
+void nrc_set_s1g_country(const char* alpha2);
+const char* nrc_get_s1g_country(void);
 #endif
