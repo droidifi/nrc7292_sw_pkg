@@ -27,8 +27,8 @@ $(M_SRC)-objs = \
 		nrc-dump.o \
 		nrc-hif-sdio.o \
 		nrc-bd.o \
-		nrc-recovery.o
-
+		nrc-recovery.o \
+		nrc-s1g.o
 ccflags-y := \
 	-DDEBUG \
 	-DBUILD_UMAC_DRIVER \

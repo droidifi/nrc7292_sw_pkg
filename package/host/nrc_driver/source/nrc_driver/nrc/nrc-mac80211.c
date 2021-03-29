@@ -22,6 +22,7 @@
 #include "nrc-stats.h"
 #include "nrc-recovery.h"
 #include "nrc-dump.h"
+#include "nrc-s1g.h"
 #include <linux/list.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
@@ -109,9 +110,7 @@
 		     0 },
 };
 
-#define  MAX_NUM_S1G_CHAN 51
-
-#define  NUM_S1G_CHAN_US  51
+#define  MAX_NUM_S1G_CHAN 200
 #define  S1G_CHAN_BASE_US 902000
 #define  S1G_CHAN_2MHZ_BASE_US 902000
 
@@ -208,7 +207,6 @@ static struct ieee80211_rate nrc_rates[] = {
 };
 #endif
 
-#ifdef CONFIG_CUSTOM_REGDB
 #ifdef CONFIG_S1G_CHANNEL
 static const struct ieee80211_regdomain mac80211_regdom = {
 	.n_reg_rules = 1,
@@ -229,7 +227,6 @@ static const struct ieee80211_regdomain mac80211_regdom = {
 	},
 };
 #endif /* CONFIG_S1G_CHANNEL */
-#endif /* CONFIG_CUSTOM_REGDB */
 
 static const char nrc_gstrings_stats[][ETH_GSTRING_LEN] = {
 	"tx_pkts_nic",
@@ -1031,7 +1028,7 @@ get_wim_channel_width(enum nl80211_chan_width width)
 	case NL80211_CHAN_WIDTH_2:
 		return CH_WIDTH_2;
 	case NL80211_CHAN_WIDTH_4:
-		return CH_WIDTH_4;
+		return CH_WIDTH_8;
 	case NL80211_CHAN_WIDTH_8:
 		return CH_WIDTH_8;
 	case NL80211_CHAN_WIDTH_16:
@@ -1048,26 +1045,36 @@ get_wim_channel_width(enum nl80211_chan_width width)
 #ifdef CONFIG_S1G_CHANNEL
 
 // NOTE: support US only for now
-static void init_s1g_channels(struct ieee80211_channel *channels)
+static void init_s1g_channels(void)
 {
-	int ch, freq;
+    struct ieee80211_channel *channels;
+	int ch, freq, w;
+    
+    channels = nrc_channels_s1ghz;
 
-	for (ch = 0; ch < NUM_S1G_CHAN_US; ch++) {
+	for (ch = 0; ch < nrc_num_channels(S1G_COUNTRY); ch++) {
 		
-        freq = S1G_CHAN_BASE_US + (ch + 1) * 500;
+        freq = nrc_get_s1g_freq(S1G_COUNTRY, ch);
 		channels[ch].band = NL80211_BAND_S1GHZ;
-		channels[ch].center_freq = KHZ_TO_MHZ(freq);
-		channels[ch].freq_offset = freq % 1000;
+		channels[ch].center_freq = freq / 10;
+		channels[ch].freq_offset = freq % 10 * 100;
         
-        if(channels[ch].freq_offset > 0) {
-            channels[ch].flags = IEEE80211_CHAN_1MHZ;
+        w = nrc_s1g_width(S1G_COUNTRY, freq);
+        
+        switch(w) 
+        {
+            default:
+            case 1:
+                channels[ch].flags = IEEE80211_CHAN_1MHZ;
+                break;
+            case 2:
+                channels[ch].flags = IEEE80211_CHAN_2MHZ;
+                break;
+            case 4:
+                channels[ch].flags = IEEE80211_CHAN_4MHZ;
+                break;             
         }
-        else if (freq >= 9050 && (freq - 9000) % 2) {
-            channels[ch].flags = IEEE80211_CHAN_1MHZ | IEEE80211_CHAN_2MHZ;
-        }
-        else {
-            channels[ch].flags = IEEE80211_CHAN_1MHZ | IEEE80211_CHAN_2MHZ | IEEE80211_CHAN_4MHZ;
-        }
+        
 		channels[ch].hw_value =  ch + 1;
         
         nrc_mac_dbg("%s: channels[%d].band %d channels[%d].center_freq %d channels[%d].freq_offset %d channels[%d].flags 0x%X channels[%d].hw_value %d freq %d\n", 
@@ -1109,19 +1116,49 @@ static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
 #else
 	struct wim_s1g_channel_param param;
 
+    nrc_mac_dbg("%s: chandef->width %d\n", __func__, chandef->width);
+    
 	param.pr_freq = FREQ_TO_100KHZ(chandef->chan->center_freq,
 				chandef->chan->freq_offset);
 	param.op_freq = FREQ_TO_100KHZ(chandef->center_freq1,
 				chandef->freq1_offset);
     
-    param.width = get_wim_channel_width(chandef->width);
+    if(chandef->width < NL80211_CHAN_WIDTH_1 || chandef->width > NL80211_CHAN_WIDTH_4) {
+        int w;
         
-    if(chandef->chan->freq_offset == 500)
-        param.width = CH_WIDTH_1;
-    else
-        param.width = CH_WIDTH_2;
+        pr_err("Invalid S1G width! w %d\n", w);
+        
+        w = nrc_s1g_width(S1G_COUNTRY, FREQ_TO_100KHZ(chandef->chan->center_freq,
+				chandef->chan->freq_offset));
+        
+        pr_err("Invalid S1G width! w %d\n", w);
+        
+        switch(w)
+        {
+            default:
+            case 1:
+                chandef->width = NL80211_CHAN_WIDTH_1;
+                break;
+            case 2:
+                chandef->width = NL80211_CHAN_WIDTH_2;
+                break;
+            case 4:
+                chandef->width = NL80211_CHAN_WIDTH_4;
+                break;
+        }                
+    }
     
-    param.flags = 0;
+    param.width = get_wim_channel_width(chandef->width);
+    
+    nrc_mac_dbg("%s: param.pr_freq(%d), param.op_freq(%d), ch_param.width(%d)\n", __func__, param.pr_freq,
+			param.op_freq, param.width);    
+            
+	if (CH_WIDTH_4 == param.width) {
+		param.flags = WIM_S1G_CHANNEL_FLAG_MCS10_NOT_RECOMMENDED;
+    }
+	else {
+		param.flags = 0;
+	}
     
 	nrc_wim_skb_add_tlv(skb, WIM_TLV_S1G_CHANNEL, sizeof(param),
 			&param);
@@ -2341,18 +2378,37 @@ static int nrc_mac_switch_vif_chanctx(struct ieee80211_hw *hw,
 	param.op_freq = FREQ_TO_100KHZ(new_ctx->def.chan->center_freq1,
 				new_ctx->def.chan->freq1_offset);
 	
-
     if(new_ctx->def.chan->width < NL80211_CHAN_WIDTH_1 || new_ctx->def.chan->width > NL80211_CHAN_WIDTH_4) {
-        if(new_ctx->def.chan->freq1_offset == 500)
-            param.width = CH_WIDTH_1;
-        else
-            param.width = CH_WIDTH_2;
-    }
-    else {
-        param.width = get_wim_channel_width(new_ctx->def.chan->width);
+        int w;
+        
+        pr_err("%s: Invalid S1G width!\n", __func__);
+        
+        w = nrc_s1g_width(S1G_COUNTRY, FREQ_TO_100KHZ(new_ctx->def.chan->center_freq,
+				new_ctx->def.chan->freq_offset));
+        
+        switch(w)
+        {
+            default:
+            case 1:
+                new_ctx->def.chan->width = NL80211_CHAN_WIDTH_1;
+                break;
+            case 2:
+                new_ctx->def.chan->width = NL80211_CHAN_WIDTH_2;
+                break;
+            case 4:
+                new_ctx->def.chan->width = NL80211_CHAN_WIDTH_4;
+                break;
+        }                
     }
     
-    param.flags = 0;
+    param.width = get_wim_channel_width(new_ctx->def.chan->width);
+    
+	if (CH_WIDTH_4 == param.width) {
+		param.flags = WIM_S1G_CHANNEL_FLAG_MCS10_NOT_RECOMMENDED;
+    }
+	else {
+		param.flags = 0;
+	}
     
     nrc_mac_dbg("%s: pr_freq(%d), op_freq(%d), width(%d)\n", __func__, param.pr_freq,
 			param.op_freq, param.width);
@@ -2514,7 +2570,7 @@ static int nrc_reg_notifier(struct wiphy *wiphy,
 #endif /* defined(CONFIG_SUPPORT_BD) */
 
 	if (request->alpha2[0] != nw->alpha2[0] ||
-			request->alpha2[1] != nw->alpha2[1]) {
+        request->alpha2[1] != nw->alpha2[1]) {
 		nw->alpha2[0] = request->alpha2[0];
 		nw->alpha2[1] = request->alpha2[1];
 
@@ -2803,6 +2859,10 @@ int nrc_register_hw(struct nrc *nw)
 		| NL80211_PROBE_RESP_OFFLOAD_SUPPORT_P2P;
 #endif
 
+#ifdef CONFIG_S1G_CHANNEL
+	hw->wiphy->flags |= NL80211_EXT_FEATURE_SCAN_FREQ_KHZ;
+#endif
+
 #ifdef CONFIG_USE_NEW_BAND_ENUM
 	for (band = NL80211_BAND_2GHZ; band < NUM_NL80211_BANDS; band++) {
 #else
@@ -2815,15 +2875,14 @@ int nrc_register_hw(struct nrc *nw)
 		case NL80211_BAND_S1GHZ:
             memcpy(&sband->s1g_cap, &nrc_s1g_cap,
 			       sizeof(sband->s1g_cap));
-            init_s1g_channels(nrc_channels_s1ghz);
+            init_s1g_channels();
 			sband->channels = nrc_channels_s1ghz;
-			sband->n_channels = NUM_S1G_CHAN_US;
+			sband->n_channels = nrc_num_channels(S1G_COUNTRY);
 			sband->bitrates = nrc_rates;
 			sband->n_bitrates = ARRAY_SIZE(nrc_rates);
             sband->band = NL80211_BAND_S1GHZ;
-            sband->ht_cap.ht_supported = false;
+            sband->ht_cap.ht_supported = true;
 			hw->wiphy->bands[band] = sband;
-			continue;
 			break;
 #else
 		case NL80211_BAND_2GHZ:
@@ -2894,16 +2953,12 @@ int nrc_register_hw(struct nrc *nw)
 
     // NOTE: use wireless-regdb with 802.11ah freqs
 #ifdef CONFIG_SUPPORT_AFTER_KERNEL_3_0_36
-#ifdef CONFIG_CUSTOM_REGDB
     hw->wiphy->regulatory_flags |=
 		REGULATORY_CUSTOM_REG|WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
 
 	wiphy_apply_custom_regulatory(hw->wiphy, &mac80211_regdom);
 	nw->alpha2[0] = '9';
-	nw->alpha2[1] = '9';  
-#else
-    hw->wiphy->regulatory_flags |= WIPHY_FLAG_HAS_REMAIN_ON_CHANNEL;
-#endif
+	nw->alpha2[1] = '9'; 
 #endif
 
 	if (nrc_mac_is_s1g(nw)) {
