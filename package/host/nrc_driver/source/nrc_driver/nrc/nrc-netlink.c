@@ -1517,7 +1517,7 @@ int nrc_netlink_init(struct nrc *nw)
 #endif
 
 	if (rc) {
-		pr_err("genl_register_family_with_ops_groups() is failed (%d).",
+		pr_err("genl_register_family_with_ops_groups() failed (%d).",
 				rc);
 		return -EINVAL;
 	}
@@ -1525,7 +1525,7 @@ int nrc_netlink_init(struct nrc *nw)
 	rc = netlink_register_notifier(&nl_umac_netlink_notifier);
 
 	if (rc) {
-		pr_err("netlink_register_notifier() is failed (%d).",
+		pr_err("netlink_register_notifier() failed (%d).",
 				rc);
 		genl_unregister_family(&nrc_nl_fam);
 		return -EINVAL;

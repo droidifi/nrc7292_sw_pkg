@@ -29,6 +29,14 @@
 #include "wim.h"
 #include "nrc-recovery.h"
 
+#ifdef CONFIG_S1G_CHANNEL
+char * fw_country = "!";
+
+module_param(fw_country, charp, 0444);
+MODULE_PARM_DESC(fw_country, "Two letter fw country code");
+
+#endif
+
 char *fw_name;
 
 module_param(fw_name, charp, 0444);

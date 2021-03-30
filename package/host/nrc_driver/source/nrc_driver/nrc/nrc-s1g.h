@@ -23,6 +23,8 @@
 
 #define FREQ_TO_100KHZ(mhz, khz) (mhz * 10 + khz / 100)
 
+extern char * fw_country;
+
 struct nrc_s1g_map {
     char alpha2[3];
     int s1g_freq;
@@ -39,4 +41,5 @@ int nrc_num_channels(const char* alpha2);
 void nrc_remap_status(const char* alpha2, struct ieee80211_rx_status *status);
 void nrc_set_s1g_country(const char* alpha2);
 const char* nrc_get_s1g_country(void);
+int nrc_is_eu(const char* alpha2);
 #endif
