@@ -26,11 +26,11 @@
 extern char * fw_country;
 
 struct nrc_s1g_map {
-    char alpha2[3];
-    int s1g_freq;
-    int fw_freq;
-    int channel;
-    int width; 
+	char alpha2[3];
+	int s1g_freq;
+	int fw_freq;
+	int channel;
+	int width; 
 };
 
 int nrc_get_s1g_freq(const char* alpha2, int ch);
