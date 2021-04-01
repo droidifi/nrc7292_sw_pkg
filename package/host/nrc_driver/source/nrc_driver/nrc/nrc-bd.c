@@ -83,7 +83,7 @@ static void * nrc_dump_load(int len)
 
 	filp = filp_open(filepath, O_RDONLY, 0);
 	if (IS_ERR(filp)) {
-		pr_err("Failed to load borad data, error:%d",IS_ERR(filp));
+		pr_err("Failed to load board data, error:%d",IS_ERR(filp));
 		set_fs(old_fs);
 		return NULL;
 	}
@@ -159,7 +159,7 @@ struct wim_bd_param * nrc_read_bd_tx_pwr(uint8_t *country_code)
 		cc_index = CC_TW;
 	else if(cc[0] == 'U' && cc[1] == 'S')
 		cc_index = CC_US;
-	else if(cc[0] == 'D' && cc[1] == 'E')
+	else if(cc[0] == 'E' && cc[1] == 'U')
 		cc_index = CC_EU;
 	else if(cc[0] == 'C' && cc[1] == 'N')
 		cc_index = CC_CN;

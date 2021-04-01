@@ -160,13 +160,13 @@ int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 	struct sk_buff *skb;
 	struct wim_scan_param *p;
 	int i, size = tlv_len(sizeof(struct wim_scan_param));
-    
+
 	if (ies) {
 		size += tlv_len(ies->common_ie_len);
 		size += ies->len[NL80211_BAND_2GHZ];
 		size += ies->len[NL80211_BAND_5GHZ];
 #ifdef  CONFIG_S1G_CHANNEL
-        size += ies->len[NL80211_BAND_S1GHZ];
+		size += ies->len[NL80211_BAND_S1GHZ];
 #endif
 	} else {
 		size += tlv_len(req->ie_len);
@@ -185,7 +185,7 @@ int nrc_wim_hw_scan(struct nrc *nw, struct ieee80211_vif *vif,
 	for (i = 0; i < req->n_channels; i++)
     {
 #ifdef CONFIG_S1G_CHANNEL
-        p->channel[i] = nrc_freq_s1g_fw(nw->alpha2, FREQ_TO_100KHZ(req->channels[i]->center_freq, req->channels[i]->freq_offset));
+		p->channel[i] = nrc_freq_s1g_fw(nw->alpha2, FREQ_TO_100KHZ(req->channels[i]->center_freq, req->channels[i]->freq_offset));
 #else
 		p->channel[i] = req->channels[i]->center_freq;
 #endif

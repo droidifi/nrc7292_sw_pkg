@@ -2555,6 +2555,12 @@ static int nrc_reg_notifier(struct wiphy *wiphy,
 
 #if defined(CONFIG_SUPPORT_BD)
 	//Read board data and save buffer
+#if defined(CONFIG_S1G_CHANNEL)
+	if (nrc_is_eu(request->alpha2)) {
+		bd_param = nrc_read_bd_tx_pwr("EU");
+	}
+	else
+#endif /* CONFIG_S1G_CHANNEL */	
 	bd_param = nrc_read_bd_tx_pwr(request->alpha2);
 	if(bd_param) {
 		nrc_dbg(NRC_DBG_STATE,"type %04X length %04X checksum %04X",
@@ -2574,7 +2580,6 @@ static int nrc_reg_notifier(struct wiphy *wiphy,
 		}
 	}
 #endif /* defined(CONFIG_SUPPORT_BD) */
-
 	if (request->alpha2[0] != nw->alpha2[0] ||
 		request->alpha2[1] != nw->alpha2[1]) {
 		nw->alpha2[0] = request->alpha2[0];
@@ -2582,14 +2587,14 @@ static int nrc_reg_notifier(struct wiphy *wiphy,
 
 		skb = nrc_wim_alloc_skb(nw, WIM_CMD_SET, WIM_MAX_SIZE);
 
-#ifdef  CONFIG_S1G_CHANNEL   
+#if defined(CONFIG_S1G_CHANNEL)
 		nrc_set_s1g_country(request->alpha2);
 
 		if (nrc_is_eu(request->alpha2)) {
 			nrc_wim_skb_add_tlv(skb, WIM_TLV_COUNTRY_CODE, sizeof(u16), "EU");
 		}
 		else
-#endif
+#endif /* CONFIG_S1G_CHANNEL */
 		nrc_wim_skb_add_tlv(skb, WIM_TLV_COUNTRY_CODE, sizeof(u16), request->alpha2);
 
 #if defined(CONFIG_SUPPORT_BD)

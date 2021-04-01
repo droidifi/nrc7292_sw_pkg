@@ -288,12 +288,12 @@ static void nrc_mac_rx_h_status(struct nrc *nw, struct sk_buff *skb)
 	status->freq = fh->info.rx.frequency;
 	status->band = nw->band; /* I hate this */
 	status->rate_idx = 0;
-    
-    nrc_mac_dbg("%s: status->band  %d\n",__func__, status->band );
+
+	nrc_mac_dbg("%s: status->band  %d\n",__func__, status->band );
     
 #ifdef CONFIG_S1G_CHANNEL
-    // firmware puts bogus frequency info into skb header, need to remap
-    nrc_remap_status(nw->alpha2, status);
+	// firmware puts bogus frequency info into skb header, need to remap
+	nrc_remap_status(nw->alpha2, status);
 #endif
 
 	if (fh->flags.rx.error_mic)
@@ -361,7 +361,7 @@ int nrc_mac_rx(struct nrc *nw, struct sk_buff *skb)
 	}
 
 	nrc_mac_rx_h_status(nw, skb);
-    
+
 	if (nw->promisc) {
 		ret = nrc_mac_s1g_monitor_rx(nw, skb);
 		return ret;
