@@ -42,4 +42,5 @@ void nrc_remap_status(const char* alpha2, struct ieee80211_rx_status *status);
 void nrc_set_s1g_country(const char* alpha2);
 const char* nrc_get_s1g_country(void);
 int nrc_is_eu(const char* alpha2);
+void nrc_s1g_set_channel_bw(struct cfg80211_chan_def *chandef);
 #endif

@@ -1121,7 +1121,6 @@ static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
 				   sizeof(ch_param), &ch_param);
 #else
 	struct wim_s1g_channel_param param;
-	int w;
 
 	nrc_mac_dbg("%s: chandef->width %d\n", __func__, chandef->width);
 
@@ -1130,21 +1129,7 @@ static void nrc_mac_add_tlv_channel(struct sk_buff *skb,
 	param.op_freq = FREQ_TO_100KHZ(chandef->center_freq1,
 				chandef->freq1_offset);
 
-	w = nrc_s1g_width(nrc_get_s1g_country(), FREQ_TO_100KHZ(chandef->chan->center_freq,
-				chandef->chan->freq_offset));
-	switch(w)
-	{
-		default:
-		case 1:
-			chandef->width = NL80211_CHAN_WIDTH_1;
-			break;
-		case 2:
-			chandef->width = NL80211_CHAN_WIDTH_2;
-			break;
-		case 4:
-			chandef->width = NL80211_CHAN_WIDTH_4;
-			break;
-	}
+	nrc_s1g_set_channel_bw(chandef);
 
 	param.width = get_wim_channel_width(chandef->width);
 
@@ -2378,29 +2363,13 @@ static int nrc_mac_switch_vif_chanctx(struct ieee80211_hw *hw,
 			&new_ctx->def.chan->center_freq);
 #else
 	struct wim_s1g_channel_param param;
-	int w;
 
 	param.pr_freq = FREQ_TO_100KHZ(new_ctx->def.chan->center_freq,
 				new_ctx->def.chan->freq_offset);
 	param.op_freq = FREQ_TO_100KHZ(new_ctx->def.chan->center_freq1,
 				new_ctx->def.chan->freq1_offset);
 
-	w = nrc_s1g_width(nw->alpha2, FREQ_TO_100KHZ(new_ctx->def.chan->center_freq,
-				new_ctx->def.chan->freq_offset));
-
-	switch(w)
-	{
-		default:
-		case 1:
-			new_ctx->def.chan->width = NL80211_CHAN_WIDTH_1;
-			break;
-		case 2:
-			new_ctx->def.chan->width = NL80211_CHAN_WIDTH_2;
-			break;
-		case 4:
-			new_ctx->def.chan->width = NL80211_CHAN_WIDTH_4;
-			break;
-	}
+	nrc_s1g_set_channel_bw(new_ctx->def);
 
 	param.width = get_wim_channel_width(new_ctx->def.chan->width);
 

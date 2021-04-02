@@ -74,7 +74,7 @@ const struct nrc_eu_map eu_map[] = {
 
 #define NUM_EU_COUNTRIES ARRAY_SIZE(eu_map)
 
-static char s1g_alpha2[3] = "TW";
+static char s1g_alpha2[3] = "US";
 
 #define S1GMAP(_alpha2, _freq_s1g, _freq_fw, _ch, _bw) { \
 	.alpha2 = _alpha2,   \
@@ -390,5 +390,26 @@ int nrc_is_eu(const char* alpha2)
 	nrc_dbg(NRC_DBG_S1G, "%s %s is _NOT_ EU\n", __func__, alpha2);
 
 	return 0;
+}
+
+void nrc_s1g_set_channel_bw(struct cfg80211_chan_def *chandef)
+{
+	int w;
+
+	w = nrc_s1g_width(nrc_get_s1g_country(), FREQ_TO_100KHZ(chandef->chan->center_freq,
+				chandef->chan->freq_offset));
+	switch(w)
+	{
+		default:
+		case 1:
+			chandef->width = NL80211_CHAN_WIDTH_1;
+			break;
+		case 2:
+			chandef->width = NL80211_CHAN_WIDTH_2;
+			break;
+		case 4:
+			chandef->width = NL80211_CHAN_WIDTH_4;
+			break;
+	}
 }
 #endif /* CONFIG_S1G_CHANNEL */
