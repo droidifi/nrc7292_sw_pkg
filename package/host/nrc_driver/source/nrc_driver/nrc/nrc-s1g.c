@@ -19,60 +19,15 @@
 
 #ifdef CONFIG_S1G_CHANNEL
 
-#define EUMAP(_alpha2) { \
-	.alpha2 = _alpha2,   \
-}
+#define S1G_FREQ_LIMIT 7500
 
-struct nrc_eu_map {
-	char alpha2[3];
-};
 
-const struct nrc_eu_map eu_map[] = {
-	EUMAP("AD"),
-	EUMAP("AF"),
-	EUMAP("AI"),
-	EUMAP("AL"),
-	EUMAP("AM"),
-	EUMAP("AN"),
-	EUMAP("AT"),
-	EUMAP("BA"),
-	EUMAP("BE"),
-	EUMAP("BG"),
-	EUMAP("CH"),
-	EUMAP("CY"),
-	EUMAP("CZ"),
-	EUMAP("DE"),
-	EUMAP("DK"),
-	EUMAP("EE"),
-	EUMAP("ES"),
-	EUMAP("FI"),
-	EUMAP("FR"),
-	EUMAP("GB"),
-	EUMAP("GE"),
-	EUMAP("GR"),
-	EUMAP("HR"),
-	EUMAP("HU"),
-	EUMAP("IE"),
-	EUMAP("IT"),
-	EUMAP("LI"),
-	EUMAP("LT"),
-	EUMAP("LU"),
-	EUMAP("LV"),
-	EUMAP("MC"),
-	EUMAP("MK"),
-	EUMAP("MT"),
-	EUMAP("NL"),
-	EUMAP("NO"),
-	EUMAP("PL"),
-	EUMAP("PT"),
-	EUMAP("RO"),
-	EUMAP("RS"),
-	EUMAP("SE"),
-	EUMAP("SI"),
-	EUMAP("SK"),
-};
-
-#define NUM_EU_COUNTRIES ARRAY_SIZE(eu_map)
+static const char eu_map[] =	"AD AF AI AL AM AN AT " \
+				"BA BE BG CH CY CZ DE " \
+				"DK EE ES FI FR GB GE " \
+				"GR HR HU IE IT LI LT " \
+				"LU LV MC MK MT NL NO " \
+				"PL PT RO RS SE SI SK";
 
 static char s1g_alpha2[3] = "US";
 
@@ -233,6 +188,24 @@ const struct nrc_s1g_map s1g_map[] = {
 #define S1G_GUARD(p) (p && (p - s1g_map) < NUM_S1G_CHANNELS)
 #define S1G_NF &s1g_map[NUM_S1G_CHANNELS - 1]
 
+const static struct nrc_s1g_map *s1g_cache;
+
+static int nrc_s1g_check_cache(const char* alpha2, int freq)
+{
+	if(s1g_cache && !memcmp(s1g_cache->alpha2, alpha2, 2)) {
+		if(freq > S1G_FREQ_LIMIT) {
+			if(s1g_cache->s1g_freq == freq)
+				return 1;
+		}
+		else if (freq > 0) {
+			if(s1g_cache->fw_freq == freq)
+				return 1;
+		}
+	}
+	
+	return 0;
+}
+
 static const struct nrc_s1g_map* find_entry(const char* alpha2, int freq)
 {
 	const struct nrc_s1g_map *p = s1g_map;
@@ -244,6 +217,10 @@ static const struct nrc_s1g_map* find_entry(const char* alpha2, int freq)
 		country = "EU";
 	else
 		country = alpha2;
+	
+	if(nrc_s1g_check_cache(alpha2, freq)) {
+		return s1g_cache;
+	}
 
 	while(S1G_GUARD(p) && memcmp(p->alpha2, country, 2))
 		p++;
@@ -253,7 +230,7 @@ static const struct nrc_s1g_map* find_entry(const char* alpha2, int freq)
 		return S1G_NF;
 	}
 
-	if(freq > 7500) {
+	if(freq > S1G_FREQ_LIMIT) {
 		while(S1G_GUARD(p) && p->s1g_freq != freq)
 			p++;
 	}
@@ -268,6 +245,8 @@ static const struct nrc_s1g_map* find_entry(const char* alpha2, int freq)
 	}
 
 	nrc_dbg(NRC_DBG_S1G, "%s %s p->s1g_freq %d p->fw_freq %d\n", __func__, country, p->s1g_freq, p->fw_freq);
+	
+	s1g_cache = p;
 
 	return p;
 }
@@ -342,17 +321,11 @@ void nrc_remap_status(const char* alpha2, struct ieee80211_rx_status *status)
 	else
 		country = alpha2;
 
-	nrc_dbg(NRC_DBG_S1G, "%s status->freq %d status->freq_offset %d\n", __func__, status->freq, status->freq_offset);
-
 	status->freq_offset = 0;
 	s1g_freq = nrc_freq_fw_s1g(country, status->freq);
 
-	nrc_dbg(NRC_DBG_S1G, "%s s1g_freq %d\n", __func__, s1g_freq);
-
 	status->freq = s1g_freq / 10;
 	status->freq_offset = (s1g_freq % 10 ? 1 : 0);
-
-	nrc_dbg(NRC_DBG_S1G, "%s status->freq %d status->freq_offset %d\n", __func__, status->freq, status->freq_offset);
 }
 
 void nrc_set_s1g_country(const char* alpha2)
@@ -376,15 +349,9 @@ const char* nrc_get_s1g_country(void)
 
 int nrc_is_eu(const char* alpha2)
 {
-	int i;
-
-	for(i=0;i<NUM_EU_COUNTRIES;i++)
-	{
-		if (alpha2[0] == eu_map[i].alpha2[0] && 
-			alpha2[1] == eu_map[i].alpha2[1]) {
-			nrc_dbg(NRC_DBG_S1G, "%s %s is EU\n", __func__, alpha2);
-			return 1;
-		}
+	if(alpha2 && strstr(alpha2, eu_map)) {
+		nrc_dbg(NRC_DBG_S1G, "%s %s is EU\n", __func__, alpha2);
+		return 1;
 	}
 
 	nrc_dbg(NRC_DBG_S1G, "%s %s is _NOT_ EU\n", __func__, alpha2);
