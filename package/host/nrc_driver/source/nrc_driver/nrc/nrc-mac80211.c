@@ -1042,7 +1042,6 @@ get_wim_channel_width(enum nl80211_chan_width width)
 
 #ifdef CONFIG_S1G_CHANNEL
 
-// NOTE: support US only for now
 static void init_s1g_channels(struct nrc *nw)
 {
 	struct ieee80211_channel *channels;

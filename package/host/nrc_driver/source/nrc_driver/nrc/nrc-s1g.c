@@ -27,7 +27,8 @@ static const char eu_map[] =	"AD AF AI AL AM AN AT " \
 				"DK EE ES FI FR GB GE " \
 				"GR HR HU IE IT LI LT " \
 				"LU LV MC MK MT NL NO " \
-				"PL PT RO RS SE SI SK";
+				"PL PT RO RS SE SI SK" \
+				"EU";
 
 static char s1g_alpha2[3] = "US";
 
@@ -283,7 +284,7 @@ int nrc_freq_s1g_fw(const char* alpha2, int s1g_freq)
 
 int nrc_s1g_width(const char* alpha2, int s1g_freq)
 {
-	nrc_dbg(NRC_DBG_S1G, "%s\n", __func__);
+	nrc_dbg(NRC_DBG_S1G, "%s %s\n", __func__, alpha2);
 
 	return find_entry(alpha2, s1g_freq)->width;
 }
@@ -349,7 +350,7 @@ const char* nrc_get_s1g_country(void)
 
 int nrc_is_eu(const char* alpha2)
 {
-	if(alpha2 && strstr(alpha2, eu_map)) {
+	if(alpha2 && strstr(eu_map, alpha2)) {
 		nrc_dbg(NRC_DBG_S1G, "%s %s is EU\n", __func__, alpha2);
 		return 1;
 	}
